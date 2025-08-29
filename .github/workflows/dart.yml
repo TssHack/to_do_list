@@ -9,10 +9,10 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout source
@@ -29,7 +29,7 @@ jobs:
         with:
           flutter-version: "3.35.2"
 
-      - name: Cache dependencies
+      - name: Cache pub dependencies
         uses: actions/cache@v3
         with:
           path: ~/.pub-cache
@@ -46,24 +46,27 @@ jobs:
       - name: Run tests (optional)
         run: flutter test || true
 
-      - name: Build Android APK (only on Linux)
+      # Build Android APK (only on Linux)
+      - name: Build Android APK
         if: runner.os == 'Linux'
         run: flutter build apk --release
 
+      # Build Desktop App
       - name: Build Desktop App
         run: |
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            flutter build windows --release
-          elif [ "${{ runner.os }}" == "Linux" ]; then
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
             flutter build linux --release
-          elif [ "${{ runner.os }}" == "macOS" ]; then
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
             flutter build macos --release
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            pwsh -Command "flutter build windows --release"
           fi
 
+      # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ runner.os }}
+          name: build-${{ runner.os }}
           path: |
             build/app/outputs/flutter-apk/*.apk
             build/windows/runner/Release/*.exe
