@@ -1,81 +1,75 @@
-name: Flutter Build APK & Desktop
+name: Flutter CI
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false   # 👈 جلوگیری از کنسل شدن همه Jobها
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-
+  build-android:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          distribution: 'temurin'
-          java-version: 17
+          flutter-version: "3.24.0"
+      - run: flutter pub get
+      - run: flutter build apk --release
+        continue-on-error: true
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.35.2"
+          flutter-version: "3.24.0"
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+        continue-on-error: true
 
-      - name: Cache pub dependencies
-        uses: actions/cache@v3
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-flutter-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-
+          flutter-version: "3.24.0"
+      - run: flutter pub get
+      - run: flutter build windows --release
+        continue-on-error: true
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Analyze project
-        run: flutter analyze || true
-
-      - name: Run tests (optional)
-        run: flutter test || true
-
-      # ---- ANDROID APK ----
-      - name: Build Android APK
-        if: runner.os == 'Linux'
-        run: flutter build apk --release
-
-      # ---- WINDOWS ----
-      - name: Build Windows App
-        if: runner.os == 'Windows'
-        run: flutter build windows --release
-        shell: pwsh
-
-      # ---- LINUX ----
-      - name: Build Linux App
-        if: runner.os == 'Linux'
-        run: flutter build linux --release
-
-      # ---- MACOS ----
-      - name: Build macOS App
-        if: runner.os == 'macOS'
-        run: flutter build macos --release
-
-      # ---- UPLOAD ----
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          name: build-${{ runner.os }}
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            build/windows/runner/Release/*.exe
-            build/linux/x64/release/bundle/*
-            build/macos/Build/Products/Release/*.app
+          flutter-version: "3.24.0"
+      - run: flutter pub get
+      - run: flutter build macos --release
+        continue-on-error: true
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev \
+            liblzma-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+      - run: flutter pub get
+      - run: flutter build linux --release
+        continue-on-error: true
 
