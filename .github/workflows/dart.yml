@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false   # 👈 جلوگیری از کنسل شدن همه Jobها
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -46,23 +47,28 @@ jobs:
       - name: Run tests (optional)
         run: flutter test || true
 
-      # Build Android APK (only on Linux)
+      # ---- ANDROID APK ----
       - name: Build Android APK
         if: runner.os == 'Linux'
         run: flutter build apk --release
 
-      # Build Desktop App
-      - name: Build Desktop App
-        run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            flutter build linux --release
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            flutter build macos --release
-          elif [ "${{ runner.os }}" == "Windows" ]; then
-            pwsh -Command "flutter build windows --release"
-          fi
+      # ---- WINDOWS ----
+      - name: Build Windows App
+        if: runner.os == 'Windows'
+        run: flutter build windows --release
+        shell: pwsh
 
-      # Upload artifacts
+      # ---- LINUX ----
+      - name: Build Linux App
+        if: runner.os == 'Linux'
+        run: flutter build linux --release
+
+      # ---- MACOS ----
+      - name: Build macOS App
+        if: runner.os == 'macOS'
+        run: flutter build macos --release
+
+      # ---- UPLOAD ----
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
