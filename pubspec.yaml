@@ -1,4 +1,4 @@
-name: to_do_list
+name: kardinex
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -13,7 +13,7 @@ dependencies:
   provider: ^6.1.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_local_notifications: ^16.3.2
+  flutter_local_notifications: ^17.2.1
   timezone: ^0.9.2
   intl: ^0.20.2
   cupertino_icons: ^1.0.8
@@ -63,3 +63,4 @@ flutter:
           weight: 400
         - asset: assets/fonts/IRANSans-Bold.ttf
           weight: 700
+
