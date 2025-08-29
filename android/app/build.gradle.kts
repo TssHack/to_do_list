@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.note.fazlit"
+    namespace = "com.note.fazli"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -53,4 +53,5 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
+
 
