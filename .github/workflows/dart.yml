@@ -1,0 +1,210 @@
+name: Multi-Platform Flutter Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  FLUTTER_VERSION: '3.16.0'
+  JAVA_VERSION: '17'
+
+jobs:
+  # 构建Android应用
+  build-android:
+    name: Build Android APK/AAB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+          
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+          
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        
+      - name: Build Android APK
+        run: flutter build apk --release
+        
+      - name: Build Android AAB
+        run: flutter build appbundle --release
+        
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-build
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+
+  # 构建Linux应用
+  build-linux:
+    name: Build Linux App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+          
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          
+      - name: Enable Linux desktop support
+        run: flutter config --enable-linux-desktop
+        
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        
+      - name: Build Linux
+        run: flutter build linux --release
+        
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-build
+          path: build/linux/x64/release/bundle/
+
+  # 构建Windows应用
+  build-windows:
+    name: Build Windows App
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+          
+      - name: Enable Windows desktop support
+        run: flutter config --enable-windows-desktop
+        
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        
+      - name: Build Windows
+        run: flutter build windows --release
+        
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-build
+          path: build/windows/x64/runner/Release/
+
+  # 构建macOS应用
+  build-macos:
+    name: Build macOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+          
+      - name: Enable macOS desktop support
+        run: flutter config --enable-macos-desktop
+        
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        
+      - name: Build macOS
+        run: flutter build macos --release
+        
+      - name: Create macOS app bundle
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../macos-app.zip *.app
+          
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-build
+          path: macos-app.zip
+
+  # 创建发布版本
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-android, build-linux, build-windows, build-macos]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Create release assets
+        run: |
+          # 为Android创建单独的文件
+          mv android-build/app-release.apk Karinex-Android-${{ github.event.release.tag_name }}.apk
+          mv android-build/app-release.aab Karinex-Android-${{ github.event.release.tag_name }}.aab
+          
+          # 为Linux创建压缩包
+          cd linux-build
+          tar -czf ../Karinex-Linux-${{ github.event.release.tag_name }}.tar.gz *
+          cd ..
+          
+          # 为Windows创建压缩包
+          cd windows-build
+          zip -r ../Karinex-Windows-${{ github.event.release.tag_name }}.zip *
+          cd ..
+          
+          # macOS已经压缩好了，重命名
+          mv macos-build/macos-app.zip Karinex-macOS-${{ github.event.release.tag_name }}.zip
+          
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            Karinex-Android-${{ github.event.release.tag_name }}.apk
+            Karinex-Android-${{ github.event.release.tag_name }}.aab
+            Karinex-Linux-${{ github.event.release.tag_name }}.tar.gz
+            Karinex-Windows-${{ github.event.release.tag_name }}.zip
+            Karinex-macOS-${{ github.event.release.tag_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 构建状态通知
+  notify:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [build-android, build-linux, build-windows, build-macos]
+    if: always()
+    steps:
+      - name: Send notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#build-notifications'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
