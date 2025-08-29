@@ -1,75 +1,55 @@
-name: Flutter CI
+ame: Flutter Build APK
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:   # 👈 دستی هم می‌تونی استارت بزنی
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.24.0"
-      - run: flutter pub get
-      - run: flutter build apk --release
-        continue-on-error: true
 
-  build-ios:
-    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.24.0"
-      - run: flutter pub get
-      - run: flutter build ios --release --no-codesign
-        continue-on-error: true
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      # نصب Flutter با نسخه دلخواه
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.0"
-      - run: flutter pub get
-      - run: flutter build windows --release
-        continue-on-error: true
+          flutter-version: "3.35.2"
 
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      # کش پکیج‌ها برای سرعت بیشتر
+      - name: Cache dependencies
+        uses: actions/cache@v3
         with:
-          flutter-version: "3.24.0"
-      - run: flutter pub get
-      - run: flutter build macos --release
-        continue-on-error: true
+          path: |
+            ~/.pub-cache
+            build
+          key: ${{ runner.os }}-flutter-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
 
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            clang \
-            cmake \
-            ninja-build \
-            pkg-config \
-            libgtk-3-dev \
-            liblzma-dev
-      - uses: subosito/flutter-action@v2
+      - name: Install dependencies
+        run: flutter pub get
+
+      # آنالیز فقط هشدار بده، خطا نکنه
+      - name: Analyze project
+        run: flutter analyze || true
+
+      # تست‌ها اجباری نیستن (خطا نکنن)
+      - name: Run tests (optional)
+        run: flutter test || true
+
+      # ساخت خروجی APK ریلیز
+      - name: Build APK
+        run: flutter build apk --release
+
+      # ذخیره خروجی‌ها در artifacts
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
         with:
-          flutter-version: "3.24.0"
-      - run: flutter pub get
-      - run: flutter build linux --release
-        continue-on-error: true
-
+          name: app-release-apks
+          path: build/app/outputs/flutter-apk/*.apk
