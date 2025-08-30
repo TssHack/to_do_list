@@ -24,7 +24,7 @@ jobs:
 
       # ✅ پاکسازی کش پکیج flutter_native_timezone
       - name: Remove flutter_native_timezone from pub cache
-        run: rm -rf $HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-2.0.0
+        run: rm -rf $HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone*
 
       # ✅ نصب dependencies
       - name: Install dependencies
@@ -33,13 +33,13 @@ jobs:
       # 🔧 اصلاح Kotlin version و namespace پکیج flutter_native_timezone
       - name: Fix flutter_native_timezone Kotlin and namespace
         run: |
-          BUILD_GRADLE="$HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-2.0.0/android/build.gradle"
-          echo "Checking file exists:"
-          ls -l $BUILD_GRADLE
+          # پیدا کردن مسیر دقیق پکیج
+          PKG_DIR=$(ls -d $HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-*/android)
+          echo "Using package dir: $PKG_DIR"
           # ارتقا Kotlin به نسخه 1.8.22
-          sed -i 's/kotlin-gradle-plugin:1.3.50/kotlin-gradle-plugin:1.8.22/' $BUILD_GRADLE
+          sed -i 's/kotlin-gradle-plugin:1.3.50/kotlin-gradle-plugin:1.8.22/' $PKG_DIR/build.gradle
           # اضافه کردن namespace
-          sed -i '/android {/a \    namespace "com.example.flutter_native_timezone"' $BUILD_GRADLE
+          sed -i '/android {/a \    namespace "com.example.flutter_native_timezone"' $PKG_DIR/build.gradle
 
       # ✅ آنالیز پروژه (خطا نکند)
       - name: Analyze project
