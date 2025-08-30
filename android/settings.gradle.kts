@@ -6,7 +6,9 @@ pluginManagement {
         require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
         flutterSdkPath
     }
+
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
     repositories {
         google()
         mavenCentral()
@@ -16,8 +18,11 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.1.1" apply false
-    id("org.jetbrains.kotlin.android") version "1.8.0" apply false
+    // Android Gradle Plugin آخرین نسخه پایدار
+    id("com.android.application") version "8.7.3" apply false
+    // Kotlin نسخه‌ی پایدار و سازگار با Flutter (بالاتر از 1.8.10)
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
 }
 
 include(":app")
+
