@@ -43,16 +43,19 @@ jobs:
       - name: Fix flutter_native_timezone Kotlin and namespace
         run: |
           BUILD_GRADLE="$HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-2.0.0/android/build.gradle"
-          # اصلاح نسخه Kotlin
+          # ارتقا Kotlin
           sed -i 's/kotlin-gradle-plugin:1.3.50/kotlin-gradle-plugin:1.8.22/' $BUILD_GRADLE
           # اضافه کردن namespace
           sed -i '/android {/a \    namespace "com.example.flutter_native_timezone"' $BUILD_GRADLE
 
+      # ساخت APK ریلیز
       - name: Build APK
         run: flutter build apk --release
 
+      # آپلود خروجی به عنوان artifact
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apks
           path: build/app/outputs/flutter-apk/*.apk
+
