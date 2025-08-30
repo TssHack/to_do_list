@@ -12,51 +12,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ✅ دریافت سورس
       - name: Checkout source
         uses: actions/checkout@v4
 
+      # ✅ نصب Flutter نسخه مشخص
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.2"
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pub-cache
-            build
-          key: ${{ runner.os }}-flutter-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-
-
-      # پاکسازی پکیج flutter_native_timezone از کش برای اعمال تغییرات
+      # ✅ پاکسازی کش پکیج flutter_native_timezone
       - name: Remove flutter_native_timezone from pub cache
         run: rm -rf $HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-2.0.0
 
+      # ✅ نصب dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 🔧 Fix flutter_native_timezone Kotlin version & namespace
+      # 🔧 اصلاح Kotlin version و namespace پکیج flutter_native_timezone
       - name: Fix flutter_native_timezone Kotlin and namespace
         run: |
           BUILD_GRADLE="$HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-2.0.0/android/build.gradle"
           echo "Checking file exists:"
           ls -l $BUILD_GRADLE
-          # ارتقا Kotlin
+          # ارتقا Kotlin به نسخه 1.8.22
           sed -i 's/kotlin-gradle-plugin:1.3.50/kotlin-gradle-plugin:1.8.22/' $BUILD_GRADLE
           # اضافه کردن namespace
           sed -i '/android {/a \    namespace "com.example.flutter_native_timezone"' $BUILD_GRADLE
 
+      # ✅ آنالیز پروژه (خطا نکند)
       - name: Analyze project
         run: flutter analyze || true
 
+      # ✅ تست‌ها (اختیاری)
       - name: Run tests (optional)
         run: flutter test || true
 
+      # ✅ ساخت APK ریلیز
       - name: Build APK
         run: flutter build apk --release
 
+      # ✅ آپلود APKها به عنوان artifact
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
