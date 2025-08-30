@@ -12,51 +12,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ✅ دریافت سورس
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # ✅ نصب Flutter نسخه مشخص
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.2"
 
-      # ✅ پاکسازی کش پکیج flutter_native_timezone
-      - name: Remove flutter_native_timezone from pub cache
-        run: rm -rf $HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone*
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            build
+          key: ${{ runner.os }}-flutter-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
 
-      # ✅ نصب dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 🔧 اصلاح Kotlin version و namespace پکیج flutter_native_timezone
-      - name: Fix flutter_native_timezone Kotlin and namespace
-        run: |
-          # پیدا کردن مسیر دقیق پکیج
-          PKG_DIR=$(ls -d $HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-*/android)
-          echo "Using package dir: $PKG_DIR"
-          # ارتقا Kotlin به نسخه 1.8.22
-          sed -i 's/kotlin-gradle-plugin:1.3.50/kotlin-gradle-plugin:1.8.22/' $PKG_DIR/build.gradle
-          # اضافه کردن namespace
-          sed -i '/android {/a \    namespace "com.example.flutter_native_timezone"' $PKG_DIR/build.gradle
-
-      # ✅ آنالیز پروژه (خطا نکند)
       - name: Analyze project
         run: flutter analyze || true
 
-      # ✅ تست‌ها (اختیاری)
       - name: Run tests (optional)
         run: flutter test || true
 
-      # ✅ ساخت APK ریلیز
-      - name: Build APK
+      # Build a single release APK (universal)
+      - name: Build single release APK
         run: flutter build apk --release
 
-      # ✅ آپلود APKها به عنوان artifact
-      - name: Upload APKs
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apks
-          path: build/app/outputs/flutter-apk/*.apk
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
