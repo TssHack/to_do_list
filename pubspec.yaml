@@ -12,7 +12,6 @@ dependencies:
     sdk: flutter
   provider: ^6.1.1
   win32: ^5.5.0
-  flutter_native_timezone: ^2.0.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_local_notifications: ^16.3.2
@@ -67,7 +66,6 @@ flutter:
           weight: 400
         - asset: assets/fonts/IRANSans-Bold.ttf
           weight: 700
-
 
 
 
