@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:   # 👈 دستی هم می‌تونی استارت بزنی
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,13 +15,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # نصب Flutter با نسخه دلخواه
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.2"
 
-      # کش پکیج‌ها برای سرعت بیشتر
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -35,19 +33,21 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # آنالیز فقط هشدار بده، خطا نکنه
       - name: Analyze project
         run: flutter analyze || true
 
-      # تست‌ها اجباری نیستن (خطا نکنن)
       - name: Run tests (optional)
         run: flutter test || true
 
-      # ساخت خروجی APK ریلیز
+      # 🔧 Fix flutter_native_timezone namespace
+      - name: Fix flutter_native_timezone namespace
+        run: |
+          BUILD_GRADLE="$HOME/.pub-cache/hosted/pub.dev/flutter_native_timezone-2.0.0/android/build.gradle"
+          sed -i '/android {/a \    namespace "com.example.flutter_native_timezone"' $BUILD_GRADLE
+
       - name: Build APK
         run: flutter build apk --release
 
-      # ذخیره خروجی‌ها در artifacts
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
