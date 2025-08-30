@@ -9,7 +9,6 @@ import 'dart:io';
 import 'dart:math';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter_native_timezone/flutter_native_timezone.dart';
 import 'package:path_provider/path_provider.dart';
 
 // Color适配器 - 修复序列化问题
@@ -1092,25 +1091,39 @@ class _SettingsPageState extends State<SettingsPage> {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化Hive
+  // Initialize Hive
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(NoteAdapter());
-  Hive.registerAdapter(ColorAdapter()); // 注册Color适配器
+  Hive.registerAdapter(ColorAdapter());
 
-  // 初始化时区
+  // Initialize time zones
   tz.initializeTimeZones();
 
-  // 设置本地时区
   try {
-    final String timeZoneName = await FlutterNativeTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    // گرفتن آفست سیستم با DateTime
+    final now = DateTime.now();
+    final offsetMinutes = now.timeZoneOffset.inMinutes;
+
+    tz.Location? location;
+
+    // جستجو در دیتابیس timezone برای یافتن لوکیشن با آفست مشابه
+    for (final loc in tz.timeZoneDatabase.locations.values) {
+      final tzNow = tz.TZDateTime.now(loc);
+      if (tzNow.timeZoneOffset.inMinutes == offsetMinutes) {
+        location = loc;
+        break;
+      }
+    }
+
+    // اگه پیدا شد همونو ست کن، وگرنه UTC
+    tz.setLocalLocation(location ?? tz.UTC);
   } catch (e) {
-    print('Could not get the local timezone: $e');
+    print("Error setting timezone: $e");
     tz.setLocalLocation(tz.UTC);
   }
 
-  // 初始化通知
+  // Initialize notifications
   await NotificationService.initialize();
 
   runApp(const MyApp());
@@ -3270,4 +3283,3 @@ extension NoteExtension on Note {
     };
   }
 }
-
